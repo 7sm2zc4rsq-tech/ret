@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Torneo</title>
+
+<style>
+body {
+  margin:0;
+  font-family:Arial;
+  color:gold;
+  text-align:center;
+  background: url("sfondo.jpg") no-repeat center center fixed;
+  background-size: cover;
+}
+
+h1 {
+  color:red;
+  text-shadow:0 0 15px black;
+}
+
+button {
+  padding:15px;
+  margin:10px;
+  border:none;
+  border-radius:10px;
+  background:gold;
+  width:80%;
+  font-size:16px;
+}
+
+.hidden { display:none; }
+
+input { padding:10px; margin:5px; }
+</style>
+
+</head>
+
+<body>
+
+<h1>🎰 Torneo Del Porcodidio</h1>
+
+<audio id="clickSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+
+<div id="home">
+<button id="btnPlayers">Giocatori</button>
+<button id="btnStart">Nuovo Torneo</button>
+<button id="btnPalmares">Palmares</button>
+</div>
+
+<div id="players" class="hidden">
+<input id="playerInput" placeholder="Nome">
+<button id="addPlayer">Aggiungi</button>
+<div id="playerList"></div>
+<button onclick="goHome()">⬅️</button>
+</div>
+
+<div id="tournament" class="hidden">
+<div id="gameArea"></div>
+<button id="finish">Fine Torneo</button>
+<button onclick="goHome()">⬅️</button>
+</div>
+
+<div id="palmares" class="hidden">
+<div id="palmaresList"></div>
+<button onclick="resetPalmares()">Reset</button>
+<button onclick="goHome()">⬅️</button>
+</div>
+
+<script>
+window.onload = function(){
+
+let players = JSON.parse(localStorage.getItem("players")||"[]");
+let palmares = JSON.parse(localStorage.getItem("palmares")||"[]");
+let games = ["UNO","31","Saltacavallo","Fr0cio","Dubito","Las Vegas"];
+let selectedPlayers = [];
+
+function playClick(){
+let s=document.getElementById("clickSound");
+s.currentTime=0;
+s.play();
+}
+
+function show(id){
+document.getElementById("home").classList.add("hidden");
+document.getElementById("players").classList.add("hidden");
+document.getElementById("tournament").classList.add("hidden");
+document.getElementById("palmares").classList.add("hidden");
+document.getElementById(id).classList.remove("hidden");
+}
+
+window.goHome = function(){
+playClick();
+show("home");
+};
+
+function renderPlayers(){
+let d=document.getElementById("playerList");
+d.innerHTML="";
+players.forEach(p=>d.innerHTML+=p+"<br>");
+}
+
+function renderPalmares(){
+let d=document.getElementById("palmaresList");
+d.innerHTML="";
+
+palmares.forEach((p,i)=>{
+let div=document.createElement("div");
+div.innerHTML = "Torneo "+(i+1)+": "+p+" ";
+let btn=document.createElement("button");
+btn.textContent="❌";
+btn.onclick=function(){
+playClick();
+palmares.splice(i,1);
+localStorage.setItem("palmares",JSON.stringify(palmares));
+renderPalmares();
+};
+div.appendChild(btn);
+d.appendChild(div);
+});
+}
+
+window.resetPalmares = function(){
+playClick();
+if(confirm("Sicuro?")){
+palmares=[];
+localStorage.setItem("palmares",JSON.stringify(palmares));
+renderPalmares();
+}
+};
+
+function selectPlayers(){
+let area=document.getElementById("gameArea");
+area.innerHTML="<h3>Scegli giocatori</h3>";
+
+players.forEach(p=>{
+let label=document.createElement("label");
+let cb=document.createElement("input");
+cb.type="checkbox";
+cb.value=p;
+
+cb.onchange=function(){
+if(cb.checked) selectedPlayers.push(p);
+else selectedPlayers = selectedPlayers.filter(x=>x!=p);
+};
+
+label.appendChild(cb);
+label.append(" "+p);
+area.appendChild(label);
+area.appendChild(document.createElement("br"));
+});
+
+let btn=document.createElement("button");
+btn.textContent="Continua";
+btn.onclick=startTournament;
+area.appendChild(btn);
+}
+
+function startTournament(){
+playClick();
+
+if(selectedPlayers.length==0){
+alert("Seleziona almeno un giocatore");
+return;
+}
+
+let area=document.getElementById("gameArea");
+area.innerHTML="";
+
+games.forEach(g=>{
+let title=document.createElement("h3");
+title.textContent=g;
+area.appendChild(title);
+
+selectedPlayers.forEach(p=>{
+let div=document.createElement("div");
+div.innerHTML = p+" <input type='number' id='"+g+p+"' value='0'>";
+area.appendChild(div);
+});
+});
+}
+
+document.getElementById("btnPlayers").onclick=function(){
+playClick();
+show("players");
+renderPlayers();
+};
+
+document.getElementById("btnStart").onclick=function(){
+playClick();
+show("tournament");
+selectedPlayers=[];
+selectPlayers();
+};
+
+document.getElementById("btnPalmares").onclick=function(){
+playClick();
+show("palmares");
+renderPalmares();
+};
+
+document.getElementById("addPlayer").onclick=function(){
+playClick();
+let n=document.getElementById("playerInput").value;
+if(n){
+players.push(n);
+localStorage.setItem("players",JSON.stringify(players));
+renderPlayers();
+}
+};
+
+document.getElementById("finish").onclick=function(){
+playClick();
+
+let scores={};
+selectedPlayers.forEach(p=>scores[p]=0);
+
+games.forEach(g=>{
+selectedPlayers.forEach(p=>{
+let val=parseInt(document.getElementById(g+p)?.value)||0;
+scores[p]+=val;
+});
+});
+
+let arr=selectedPlayers.map(p=>({name:p,score:scores[p]}));
+arr.sort((a,b)=>b.score-a.score);
+
+let winner=arr[0].name;
+palmares.push(winner);
+localStorage.setItem("palmares",JSON.stringify(palmares));
+
+alert("Vincitore: "+winner);
+goHome();
+};
+
+};
+</script>
+
+</body>
+</html>
